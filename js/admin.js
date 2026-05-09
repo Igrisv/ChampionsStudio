@@ -84,7 +84,7 @@ async function handleCreateNews(e) {
         title: document.getElementById('admin-news-title')?.value?.trim(),
         description: document.getElementById('admin-news-desc')?.value?.trim(),
         version: document.getElementById('admin-news-version')?.value?.trim() || '',
-        tag: document.getElementById('admin-news-tag')?.value || 'platform',
+        tag: document.getElementById('admin-news-tag')?.value?.trim() || 'General',
         date: document.getElementById('admin-news-date')?.value || new Date().toISOString().split('T')[0],
         details: (document.getElementById('admin-news-details')?.value || '')
             .split('\n').map(l => l.trim()).filter(Boolean)
@@ -125,8 +125,7 @@ function addNewsLocally(entry) {
         id: 'local-' + Date.now(),
         version: entry.version,
         date: entry.date,
-        tag: entry.tag,
-        tagLabel: TAG_LABELS[entry.tag] || entry.tag,
+        tags: entry.tag ? entry.tag.split(',').map(t => t.trim()).filter(Boolean) : ['General'],
         title: entry.title,
         description: entry.description,
         details: entry.details
@@ -165,7 +164,7 @@ function renderAdminNewsList() {
     container.innerHTML = devlogEntries.map(entry => `
         <div class="admin-list-item">
             <div class="admin-list-info">
-                <span class="devlog-tag devlog-tag--${entry.tag}" style="font-size:0.7rem">${entry.tagLabel}</span>
+                <span class="game-tag" style="background:rgba(255,255,255,0.05); color:var(--text-secondary); padding:2px 8px; border-radius:4px; font-size:0.7rem; border:1px solid rgba(255,255,255,0.1)">${(entry.tags || []).join(', ')}</span>
                 <strong>${entry.title}</strong>
                 <span class="admin-list-date">${entry.date}</span>
             </div>
@@ -254,7 +253,9 @@ async function handleUpdateGame(e) {
         version: document.getElementById('admin-game-version')?.value?.trim(),
         status: document.getElementById('admin-game-status')?.value,
         platform: document.getElementById('admin-game-platform')?.value?.trim(),
-        size: document.getElementById('admin-game-size')?.value?.trim()
+        size: document.getElementById('admin-game-size')?.value?.trim(),
+        image_url: document.getElementById('admin-game-image')?.value?.trim() || null,
+        download_info: document.getElementById('admin-game-info')?.value?.trim() || null
     };
 
     const sb = typeof getSupabase === 'function' ? getSupabase() : null;
@@ -345,7 +346,9 @@ function renderPublicGames() {
 
         // Define top image/icon area
         let bannerHtml = '';
-        if (isMoba) {
+        if (game.image_url) {
+            bannerHtml = `<img src="${game.image_url}" alt="${game.name}" class="download-hero-banner" style="position: relative; object-fit: cover; height: 180px;">`;
+        } else if (isMoba) {
             bannerHtml = `<img src="assets/hero-banner.png" alt="${game.name}" class="download-hero-banner" style="position: relative; object-fit: cover; height: 180px;">`;
         } else {
             bannerHtml = `
@@ -358,9 +361,12 @@ function renderPublicGames() {
         let actionHtml = '';
         if (isAvailable) {
             actionHtml = `
-            <a href="${game.download_url}" id="download-exe-btn" class="download-btn-main" download>
+            <a href="${game.download_url || '#'}" id="download-exe-btn" class="download-btn-main" ${game.download_url ? 'download' : ''}>
                 <i data-lucide="download"></i> Descargar Juego
             </a>`;
+            if (game.download_info) {
+                actionHtml += `<p style="font-size:0.8rem; color:var(--text-muted); text-align:center; padding-top:10px; margin-bottom:0;">${game.download_info}</p>`;
+            }
         } else {
             actionHtml = `
             <button class="download-btn-main" style="background: var(--surface-light); color: var(--text-muted); cursor: not-allowed; justify-content: center; width: 100%;">
@@ -401,6 +407,8 @@ function populateGameForm(gameId) {
     document.getElementById('admin-game-status').value = game.status || 'coming_soon';
     document.getElementById('admin-game-platform').value = game.platform || '';
     document.getElementById('admin-game-size').value = game.size || '';
+    document.getElementById('admin-game-image').value = game.image_url || '';
+    document.getElementById('admin-game-info').value = game.download_info || '';
 
     // Scroll to form
     document.getElementById('admin-games-form')?.scrollIntoView({ behavior: 'smooth', block: 'center' });

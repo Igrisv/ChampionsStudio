@@ -10,8 +10,7 @@ const DEVLOG_ENTRIES_STATIC = [
         id: 'static-1',
         version: 'v1.2.0',
         date: '2026-04-20',
-        tag: 'moba',
-        tagLabel: 'MOBA',
+        tags: ['MOBA', 'Update'],
         title: 'Sistema MOBA 3v3 — Partida Rápida',
         description: 'Se ha implementado el modo de juego principal con partidas 3v3 en tiempo real.',
         details: [
@@ -26,8 +25,7 @@ const DEVLOG_ENTRIES_STATIC = [
         id: 'static-2',
         version: 'v1.1.0',
         date: '2026-04-14',
-        tag: 'moba',
-        tagLabel: 'MOBA',
+        tags: ['MOBA', 'Contenido Nuevo'],
         title: 'Nuevos Campeones: Asesino Oscuro y Tiburón Guerrero',
         description: 'Se añaden dos nuevos campeones jugables con modelos 3D únicos y habilidades temáticas.',
         details: [
@@ -41,8 +39,7 @@ const DEVLOG_ENTRIES_STATIC = [
         id: 'static-3',
         version: 'v1.0.2',
         date: '2026-04-10',
-        tag: 'fix',
-        tagLabel: 'Corrección',
+        tags: ['Corrección'],
         title: 'Correcciones de Autenticación Móvil',
         description: 'Se resolvieron problemas con el OAuth en dispositivos móviles y la integración del selector de imágenes.',
         details: [
@@ -56,8 +53,7 @@ const DEVLOG_ENTRIES_STATIC = [
         id: 'static-4',
         version: 'v1.0.1',
         date: '2026-04-08',
-        tag: 'platform',
-        tagLabel: 'Plataforma',
+        tags: ['Plataforma'],
         title: 'Lanzamiento de la Plataforma Web',
         description: 'Primera versión de Champions Studio con login unificado, dashboard de usuario y catálogo de juegos.',
         details: [
@@ -71,8 +67,7 @@ const DEVLOG_ENTRIES_STATIC = [
         id: 'static-5',
         version: 'v1.0.0',
         date: '2026-04-07',
-        tag: 'nova',
-        tagLabel: 'Nova Survivor',
+        tags: ['Nova Survivor', 'Lanzamiento'],
         title: 'Nova Survivor — Modo Roguelite',
         description: 'Primera versión del roguelite Nova Survivor con el modo de supervivencia como experiencia principal.',
         details: [
@@ -87,8 +82,7 @@ const DEVLOG_ENTRIES_STATIC = [
         id: 'static-6',
         version: 'v0.9.0',
         date: '2026-04-05',
-        tag: 'nova',
-        tagLabel: 'Nova Survivor',
+        tags: ['Nova Survivor', 'Update'],
         title: 'Sistema de Enemigos Expandido',
         description: 'Nuevos tipos de enemigos y mejoras visuales para enriquecer el combate en Nova Survivor.',
         details: [
@@ -123,8 +117,7 @@ async function loadDevlogEntries() {
                 id: row.id,
                 version: row.version || '',
                 date: row.date,
-                tag: row.tag,
-                tagLabel: TAG_LABELS[row.tag] || row.tag,
+                tags: row.tag ? row.tag.split(',').map(t => t.trim()).filter(Boolean) : ['General'],
                 title: row.title,
                 description: row.description,
                 details: row.details || []
@@ -138,13 +131,6 @@ async function loadDevlogEntries() {
     }
 }
 
-const TAG_LABELS = {
-    platform: 'Plataforma',
-    moba: 'MOBA',
-    nova: 'Nova Survivor',
-    fix: 'Corrección'
-};
-
 /**
  * Render devlog entries into the timeline
  */
@@ -154,7 +140,7 @@ function renderDevlog(filter = 'all') {
 
     const filtered = filter === 'all'
         ? devlogEntries
-        : devlogEntries.filter(e => e.tag === filter);
+        : devlogEntries.filter(e => e.tags && e.tags.some(t => t.toLowerCase() === filter.toLowerCase()));
 
     if (filtered.length === 0) {
         timeline.innerHTML = `
@@ -173,7 +159,7 @@ function renderDevlog(filter = 'all') {
                 <div class="devlog-meta">
                     <span class="devlog-version">${entry.version}</span>
                     <span class="devlog-date">${formatDate(entry.date)}</span>
-                    <span class="devlog-tag devlog-tag--${entry.tag}">${entry.tagLabel}</span>
+                    ${(entry.tags || []).map(t => `<span class="game-tag" style="background:rgba(255,255,255,0.05); color:var(--text-secondary); padding:2px 8px; border-radius:4px; font-size:0.75rem; border:1px solid rgba(255,255,255,0.1)">${t}</span>`).join(' ')}
                 </div>
                 <h3>${entry.title}</h3>
                 <p>${entry.description}</p>
@@ -196,19 +182,35 @@ function initDevlog() {
     const filtersContainer = document.getElementById('devlog-filters');
     if (!filtersContainer) return;
 
-    filtersContainer.addEventListener('click', (e) => {
-        const btn = e.target.closest('.filter-btn');
-        if (!btn) return;
-
-        filtersContainer.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
-        btn.classList.add('active');
-
-        const filter = btn.getAttribute('data-filter');
-        renderDevlog(filter);
-    });
-
     // Load entries then render
-    loadDevlogEntries().then(() => renderDevlog('all'));
+    loadDevlogEntries().then(() => {
+        // Collect unique tags for filter buttons
+        const allTags = new Set();
+        devlogEntries.forEach(e => {
+            if (e.tags) e.tags.forEach(t => allTags.add(t));
+        });
+
+        // Generate filter bar
+        let buttonsHtml = `<button class="filter-btn active" data-filter="all">Todas</button>`;
+        Array.from(allTags).sort().forEach(tag => {
+            buttonsHtml += `<button class="filter-btn" data-filter="${tag}">${tag}</button>`;
+        });
+        filtersContainer.innerHTML = buttonsHtml;
+
+        // Add delegator
+        filtersContainer.addEventListener('click', (e) => {
+            const btn = e.target.closest('.filter-btn');
+            if (!btn) return;
+
+            filtersContainer.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+
+            const filter = btn.getAttribute('data-filter');
+            renderDevlog(filter);
+        });
+
+        renderDevlog('all');
+    });
 }
 
 /**

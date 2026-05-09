@@ -55,7 +55,8 @@ async function initAuth() {
             const currentHash = (window.location.hash || '#home').replace('#', '').split('?')[0];
 
             if (event === 'SIGNED_IN') {
-                if (['login', 'register', 'home', ''].includes(currentHash)) {
+                const isOAuthReturn = window.location.hash.includes('access_token');
+                if (['login', 'register'].includes(currentHash) || isOAuthReturn) {
                     navigateTo('dashboard');
                 }
             } else if (event === 'SIGNED_OUT') {

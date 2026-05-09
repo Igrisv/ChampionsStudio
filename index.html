@@ -706,13 +706,8 @@
                                 <input type="text" id="admin-news-version" class="form-input" placeholder="v1.3.0">
                             </div>
                             <div class="form-group" style="flex:1">
-                                <label for="admin-news-tag">Categoría</label>
-                                <select id="admin-news-tag" class="form-input">
-                                    <option value="platform">Plataforma</option>
-                                    <option value="moba">MOBA</option>
-                                    <option value="nova">Nova Survivor</option>
-                                    <option value="fix">Corrección</option>
-                                </select>
+                                <label for="admin-news-tag">Etiquetas (por comas)</label>
+                                <input type="text" id="admin-news-tag" class="form-input" placeholder="Ej. Update, Móvil">
                             </div>
                             <div class="form-group" style="flex:1">
                                 <label for="admin-news-date">Fecha</label>
@@ -787,6 +782,16 @@
                             <div class="form-group" style="flex:1">
                                 <label for="admin-game-size">Tamaño</label>
                                 <input type="text" id="admin-game-size" class="form-input" placeholder="~350 MB">
+                            </div>
+                        </div>
+                        <div class="admin-form-row">
+                            <div class="form-group" style="flex:1">
+                                <label for="admin-game-image">Imagen Portada (URL)</label>
+                                <input type="text" id="admin-game-image" class="form-input" placeholder="assets/hero-banner.png o https://...">
+                            </div>
+                            <div class="form-group" style="flex:1">
+                                <label for="admin-game-info">Info Descarga</label>
+                                <input type="text" id="admin-game-info" class="form-input" placeholder="Requiere Windows 10+">
                             </div>
                         </div>
                         <button type="submit" class="btn btn-success" style="width:100%;padding:14px">
