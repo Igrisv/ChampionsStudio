@@ -52,13 +52,19 @@ async function initAuth() {
             currentUser = session?.user || null;
             updateAuthUI();
 
+            const currentHash = (window.location.hash || '#home').replace('#', '').split('?')[0];
+
             if (event === 'SIGNED_IN') {
-                navigateTo('dashboard');
+                if (['login', 'register', 'home', ''].includes(currentHash)) {
+                    navigateTo('dashboard');
+                }
             } else if (event === 'SIGNED_OUT') {
-                navigateTo('home');
+                if (['dashboard', 'profile', 'redeem', 'admin'].includes(currentHash)) {
+                    navigateTo('home');
+                }
             } else if (event === 'PASSWORD_RECOVERY') {
                 navigateTo('reset-password');
-                showResetUpdateForm();
+                if (typeof showResetUpdateForm === 'function') showResetUpdateForm();
             }
         });
     } catch (e) {
