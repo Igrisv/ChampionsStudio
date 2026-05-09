@@ -10,6 +10,7 @@ const SUPABASE_ANON = 'sb_publishable_nFDdquSCRrNJd3sjGvIW1A_TPdayEg0';
 // ── Auth State ──
 let supabaseClient = null;
 let currentUser = null;
+let isAuthInitialized = false;
 
 /**
  * Initialize Supabase client (called once on page load).
@@ -63,6 +64,11 @@ async function initAuth() {
     } catch (e) {
         console.warn('Auth session check failed:', e);
     }
+
+    isAuthInitialized = true;
+    
+    // Explicitly re-trigger route logic now that auth state is known
+    if (typeof handleRoute === 'function') handleRoute();
 
     updateAuthUI();
     setupAuthForms();

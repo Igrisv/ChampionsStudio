@@ -32,15 +32,23 @@ function handleRoute() {
 
     // Auth guards (only if auth module is loaded)
     if (typeof currentUser !== 'undefined') {
-        if (PROTECTED.includes(hash) && !currentUser) {
-            hash = 'login';
-            window.location.hash = hash;
-            return;
+        const initialized = typeof isAuthInitialized !== 'undefined' ? isAuthInitialized : true;
+        
+        if (PROTECTED.includes(hash)) {
+            if (!initialized) return; // Wait until auth fully loads before redirecting
+            if (!currentUser) {
+                hash = 'login';
+                window.location.hash = hash;
+                return;
+            }
         }
-        if (AUTH_ONLY.includes(hash) && currentUser) {
-            hash = 'dashboard';
-            window.location.hash = hash;
-            return;
+        if (AUTH_ONLY.includes(hash)) {
+            if (!initialized) return; // Wait to see if we should skip login
+            if (currentUser) {
+                hash = 'dashboard';
+                window.location.hash = hash;
+                return;
+            }
         }
     }
 

@@ -243,15 +243,16 @@ async function handleUpdateGame(e) {
     };
 
     const sb = typeof getSupabase === 'function' ? getSupabase() : null;
-    if (sb && !gameId.startsWith('game-')) {
+    if (sb) {
         try {
             const { error } = await sb.from('games').update(updates).eq('id', gameId);
             if (error) throw error;
             showAdminMessage(msgEl, '¡Juego actualizado en Supabase!', 'success');
         } catch (err) {
             updateGameLocally(gameId, updates);
-            showAdminMessage(msgEl, 'Supabase no disponible — actualizado localmente.', 'success');
+            showAdminMessage(msgEl, 'Supabase falló — actualizado localmente.', 'success');
         }
+    } else {
         updateGameLocally(gameId, updates);
         showAdminMessage(msgEl, 'Juego actualizado localmente.', 'success');
     }
