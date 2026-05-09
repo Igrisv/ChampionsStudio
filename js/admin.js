@@ -181,7 +181,7 @@ function renderAdminNewsList() {
 /* ─────────────────── GAMES MANAGEMENT ─────────────────── */
 
 // Local games data (fallback)
-let gamesData = [
+const localDefaults = [
     {
         id: 'game-moba',
         name: 'Game of Champions',
@@ -204,6 +204,8 @@ let gamesData = [
     }
 ];
 
+let gamesData = [ ...localDefaults ];
+
 async function loadGamesData() {
     const sb = typeof getSupabase === 'function' ? getSupabase() : null;
     if (!sb) return;
@@ -212,7 +214,20 @@ async function loadGamesData() {
         const { data, error } = await sb.from('games').select('*').order('created_at', { ascending: true });
         if (error) throw error;
         if (data && data.length > 0) {
-            gamesData = data;
+            // Merge DB data with local fallbacks by index, ALWAYS preserving the DB's true ID (UUID)
+            gamesData = data.map((dbGame, idx) => {
+                const localFallback = localDefaults[idx] || {};
+                return {
+                    id: dbGame.id, // Always use real DB id
+                    name: dbGame.name || localFallback.name || `Juego ${idx + 1}`,
+                    description: dbGame.description || localFallback.description || '',
+                    download_url: dbGame.download_url || localFallback.download_url || '',
+                    version: dbGame.version || localFallback.version || '',
+                    status: dbGame.status || localFallback.status || 'coming_soon',
+                    platform: dbGame.platform || localFallback.platform || '',
+                    size: dbGame.size || localFallback.size || ''
+                };
+            });
         }
     } catch (e) {
         console.warn('Games: Supabase unavailable, using local data.', e.message);
@@ -245,8 +260,12 @@ async function handleUpdateGame(e) {
     const sb = typeof getSupabase === 'function' ? getSupabase() : null;
     if (sb) {
         try {
-            const { error } = await sb.from('games').update(updates).eq('id', gameId);
+            const { data, error } = await sb.from('games').update(updates).eq('id', gameId).select();
             if (error) throw error;
+            if (!data || data.length === 0) {
+                throw new Error('Supabase no actualizó nada. Posible problema de permisos (RLS) o ID no coincide.');
+            }
+            updateGameLocally(gameId, updates);
             showAdminMessage(msgEl, '¡Juego actualizado en Supabase!', 'success');
         } catch (err) {
             updateGameLocally(gameId, updates);
@@ -272,11 +291,13 @@ function renderAdminGamesList() {
     const container = document.getElementById('admin-games-list');
     if (!container) return;
 
-    container.innerHTML = gamesData.map(game => `
+    container.innerHTML = gamesData.map(game => {
+        const isAvailable = game.status === 'available' || game.status === 'avaliable' || String(game.status).toLowerCase() === 'disponible';
+        return `
         <div class="admin-list-item">
             <div class="admin-list-info">
-                <span class="game-tag" style="background:${game.status === 'available' ? 'rgba(62,207,142,0.1)' : 'rgba(245,166,35,0.1)'}; color:${game.status === 'available' ? 'var(--accent-green)' : 'var(--accent-gold)'}; padding:3px 8px; border-radius:4px; font-size:0.7rem; font-weight:600;">
-                    ${game.status === 'available' ? 'DISPONIBLE' : 'PRÓXIMAMENTE'}
+                <span class="game-tag" style="background:${isAvailable ? 'rgba(62,207,142,0.1)' : 'rgba(245,166,35,0.1)'}; color:${isAvailable ? 'var(--accent-green)' : 'var(--accent-gold)'}; padding:3px 8px; border-radius:4px; font-size:0.7rem; font-weight:600;">
+                    ${isAvailable ? 'DISPONIBLE' : 'PRÓXIMAMENTE'}
                 </span>
                 <strong>${game.name}</strong>
                 <span class="admin-list-date">${game.version || '—'}</span>
@@ -285,7 +306,7 @@ function renderAdminGamesList() {
                 <i data-lucide="pencil" style="width:14px;height:14px"></i>
             </button>
         </div>
-    `).join('');
+    `}).join('');
 
     // Populate select
     const gameSelect = document.getElementById('admin-game-select');
@@ -302,7 +323,9 @@ function renderPublicGames() {
     if (!grid) return;
 
     grid.innerHTML = gamesData.map(game => {
-        const isMoba = game.id.includes('moba') || game.name.toLowerCase().includes('moba');
+        const safeId = game.id || '';
+        const safeName = game.name || '';
+        const isMoba = safeId.includes('moba') || safeName.toLowerCase().includes('moba');
         
         // Define tags based on status
         let tagsHtml = '';
@@ -312,7 +335,9 @@ function renderPublicGames() {
             tagsHtml += `<span class="game-tag" style="background: rgba(244, 63, 94, 0.1); color: var(--accent-magenta); padding: 4px 10px; border-radius: 6px; font-size: 0.75rem; font-weight: 600;">ROGUELITE</span>`;
         }
 
-        if (game.status === 'available') {
+        const isAvailable = game.status === 'available' || game.status === 'avaliable' || String(game.status).toLowerCase() === 'disponible';
+
+        if (isAvailable) {
             tagsHtml += `<span class="game-tag" style="background: rgba(34, 197, 94, 0.1); color: var(--accent-green); padding: 4px 10px; border-radius: 6px; font-size: 0.75rem; font-weight: 600;">DISPONIBLE</span>`;
         } else {
             tagsHtml += `<span class="game-tag" style="background: rgba(251, 191, 36, 0.1); color: var(--accent-gold); padding: 4px 10px; border-radius: 6px; font-size: 0.75rem; font-weight: 600;">EN DESARROLLO</span>`;
@@ -331,7 +356,7 @@ function renderPublicGames() {
 
         // Define footer action
         let actionHtml = '';
-        if (game.status === 'available') {
+        if (isAvailable) {
             actionHtml = `
             <a href="${game.download_url}" id="download-exe-btn" class="download-btn-main" download>
                 <i data-lucide="download"></i> Descargar Juego
