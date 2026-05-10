@@ -19,17 +19,20 @@ function navigateTo(sectionId) {
  * Core router — read the hash, show the right section
  */
 function handleRoute() {
-    let hash = (window.location.hash || '#home').replace('#', '');
-    console.log('[Router] -> handleRoute processing:', hash);
+    // Read the full raw hash before any processing
+    const fullHash = window.location.hash;
+    console.log('[Router] handleRoute. fullHash:', fullHash);
 
-    // Let Supabase silently handle callback tokens
-    if (hash.includes('access_token') || hash.includes('type=recovery')) {
-        console.log('[Router] -> Yielding routing to Supabase for token injection.');
+    // Let Supabase handle any OAuth callback — these contain token fragments.
+    // This covers both '#access_token=...' and 'dashboard#access_token=...'
+    if (fullHash.includes('access_token=') || fullHash.includes('type=recovery')) {
+        console.log('[Router] OAuth/recovery tokens detected — yielding to auth module.');
         return;
     }
 
-    // Strip query-string noise
-    hash = hash.split('?')[0].split('&')[0];
+    // Clean the hash to get just the section name
+    let hash = fullHash.replace('#', '').split('?')[0].split('&')[0].split('#')[0].trim();
+    console.log('[Router] resolved page:', hash);
 
     // Fallback to home for unknown hashes
     if (!SECTIONS.includes(hash)) hash = 'home';
@@ -47,7 +50,7 @@ function handleRoute() {
             }
         }
         if (AUTH_ONLY.includes(hash)) {
-            if (!initialized) return; // Wait to see if we should skip login
+            if (!initialized) return;
             if (currentUser) {
                 hash = 'dashboard';
                 window.location.hash = hash;

@@ -57,14 +57,13 @@ function getSupabase() {
  */
 async function initAuth() {
     // ── Step 1: Snapshot the URL BEFORE Supabase touches it ──
-    // Supabase's PKCE flow passes the code in ?code=... (query string).
-    // Supabase's implicit flow passes the token in #access_token=... (hash).
-    // We capture this NOW before the SDK rewrites the URL.
+    // Implicit flow puts token in #access_token=... (hash).
+    // PKCE flow puts code in ?code=... (query string).
+    // We capture this NOW — Supabase rewrites the URL during getSession().
     isOAuthLanding = (
         window.location.search.includes('code=') ||
         window.location.hash.includes('access_token=')
     );
-    console.log('[Auth] initAuth. isOAuthLanding:', isOAuthLanding);
 
     const sb = getSupabase();
     if (!sb) {
@@ -74,30 +73,42 @@ async function initAuth() {
     }
 
     try {
-        // ── Step 2: Get current session (resolves OAuth code exchange internally) ──
+        // ── Step 2: getSession() exchanges the OAuth token internally ──
+        // After this call, window.location.hash will be cleaned by Supabase.
         const { data: { session } } = await sb.auth.getSession();
         if (session) {
             currentUser = session.user;
         }
 
-        // ── Step 3: Listen for future auth state transitions ──
+        // ── Step 3: If this was an OAuth landing with a valid session, redirect NOW ──
+        // We do this directly because SIGNED_IN may never fire on implicit flow —
+        // Supabase fires INITIAL_SESSION instead when the token is already in the URL.
+        if (isOAuthLanding && session) {
+            console.log('[Auth] OAuth landing confirmed with session — redirecting to dashboard.');
+            isOAuthLanding = false; // Consume flag
+            isAuthInitialized = true;
+            updateAuthUI();
+            setupAuthForms();
+            navigateTo('dashboard');
+            return; // Let onAuthStateChange handle future events normally
+        }
+
+        // ── Step 4: Listen for future auth events (non-OAuth flows) ──
         sb.auth.onAuthStateChange((event, session) => {
-            console.log('[Auth] onAuthStateChange:', event);
             currentUser = session?.user || null;
             updateAuthUI();
 
-            // Always get the current hash cleanly, stripping OAuth fragments
-            const rawHash = window.location.hash.replace('#', '');
-            const currentPage = rawHash.split('?')[0].split('&')[0].split('#')[0];
+            // Get the current page cleanly — strip any OAuth token fragments
+            const currentPage = (window.location.hash || '#home')
+                .replace('#', '')
+                .split(/[?&#]/)[0];
 
             if (event === 'SIGNED_IN') {
-                // Redirect to dashboard when: coming from OAuth, or was on login/register page
-                if (isOAuthLanding || ['login', 'register', 'home', ''].includes(currentPage)) {
+                // Normal login flow (email/password clicked login button)
+                if (['login', 'register', 'home', ''].includes(currentPage)) {
                     navigateTo('dashboard');
-                    isOAuthLanding = false; // Consume the flag — prevent double-redirects
                 }
             } else if (event === 'SIGNED_OUT') {
-                // Only redirect away from protected pages
                 if (['dashboard', 'profile', 'redeem', 'admin'].includes(currentPage)) {
                     navigateTo('home');
                 }
@@ -105,18 +116,14 @@ async function initAuth() {
                 navigateTo('reset-password');
                 if (typeof showResetUpdateForm === 'function') showResetUpdateForm();
             }
-            // INITIAL_SESSION and TOKEN_REFRESHED are intentionally ignored for routing.
-            // They indicate background session restoration, not user action.
+            // INITIAL_SESSION and TOKEN_REFRESHED → ignored for routing.
         });
     } catch (e) {
         console.warn('Auth session check failed:', e);
     }
 
     isAuthInitialized = true;
-
-    // Re-trigger router now that auth state is known
     if (typeof handleRoute === 'function') handleRoute();
-
     updateAuthUI();
     setupAuthForms();
 }
