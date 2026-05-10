@@ -138,22 +138,77 @@ function updateAuthUI() {
     if (currentUser) {
         // ── Logged in ──
         if (navAuthArea) {
+            const email = currentUser.email || '—';
+            const initial = email.charAt(0).toUpperCase();
+
             navAuthArea.innerHTML = `
-                <a href="#profile" class="btn btn-ghost" style="padding:8px 16px; border:none;">Perfil</a>
-                <a href="#redeem" class="btn btn-ghost" style="padding:8px 16px; border:none;">Códigos</a>
-                <a href="#dashboard" class="btn btn-ghost" style="gap:6px">
-                    <i data-lucide="user" style="width:16px;height:16px"></i>
+                <a href="#redeem" class="btn btn-ghost" style="padding:8px 16px; border:none;" id="nav-redeem-link">Códigos</a>
+                <a href="#dashboard" class="btn btn-ghost" style="gap:6px; padding:8px 16px; border:none;" id="nav-dashboard-link">
+                    <i data-lucide="layout-dashboard" style="width:16px;height:16px"></i>
                     Mi Cuenta
                 </a>
+
+                <div class="nav-avatar-wrap" id="nav-avatar-wrap">
+                    <button class="nav-avatar-btn" id="nav-avatar-btn" aria-label="Menú de perfil">
+                        ${initial}
+                    </button>
+                    <div class="nav-avatar-dropdown" id="nav-avatar-dropdown">
+                        <div class="nav-dropdown-header">Mi Cuenta</div>
+                        <a href="#profile" class="nav-dropdown-item" id="dd-profile">
+                            <i data-lucide="user-circle"></i>
+                            Mi Perfil
+                        </a>
+                        <a href="#dashboard" class="nav-dropdown-item" id="dd-dashboard">
+                            <i data-lucide="layout-dashboard"></i>
+                            Mi Cuenta
+                        </a>
+                        <a href="#redeem" class="nav-dropdown-item" id="dd-redeem">
+                            <i data-lucide="ticket"></i>
+                            Códigos
+                        </a>
+                        <div class="nav-dropdown-divider"></div>
+                        <button class="nav-dropdown-item danger" id="dd-logout">
+                            <i data-lucide="log-out"></i>
+                            Cerrar Sesión
+                        </button>
+                    </div>
+                </div>
             `;
-            // Call changePage handlers on new links
-            navAuthArea.querySelectorAll('a').forEach(a => {
-                a.addEventListener('click', e => {
+
+            // Wire dropdown toggle
+            const avatarBtn = document.getElementById('nav-avatar-btn');
+            const dropdown = document.getElementById('nav-avatar-dropdown');
+            if (avatarBtn && dropdown) {
+                avatarBtn.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    dropdown.classList.toggle('open');
+                });
+                // Close on outside click
+                document.addEventListener('click', (e) => {
+                    if (!document.getElementById('nav-avatar-wrap')?.contains(e.target)) {
+                        dropdown.classList.remove('open');
+                    }
+                });
+            }
+
+            // Wire dropdown nav items
+            ['dd-profile', 'dd-dashboard', 'dd-redeem', 'nav-redeem-link', 'nav-dashboard-link'].forEach(id => {
+                document.getElementById(id)?.addEventListener('click', (e) => {
                     e.preventDefault();
-                    if (typeof changePage === 'function') changePage(e);
+                    const href = e.currentTarget.getAttribute('href');
+                    if (href) navigateTo(href.replace('#', ''));
+                    dropdown?.classList.remove('open');
                 });
             });
+
+            // Wire logout
+            document.getElementById('dd-logout')?.addEventListener('click', () => {
+                handleLogout();
+            });
+
+            if (window.lucide) lucide.createIcons();
         }
+
 
         // Check admin role (async — updates nav-admin-link when resolved)
         if (typeof checkAdminRole === 'function') checkAdminRole();
