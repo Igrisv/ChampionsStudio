@@ -21,18 +21,15 @@ function navigateTo(sectionId) {
 function handleRoute() {
     // Read the full raw hash before any processing
     const fullHash = window.location.hash;
-    console.log('[Router] handleRoute. fullHash:', fullHash);
 
     // Let Supabase handle any OAuth callback — these contain token fragments.
     // This covers both '#access_token=...' and 'dashboard#access_token=...'
     if (fullHash.includes('access_token=') || fullHash.includes('type=recovery')) {
-        console.log('[Router] OAuth/recovery tokens detected — yielding to auth module.');
         return;
     }
 
     // Clean the hash to get just the section name
     let hash = fullHash.replace('#', '').split('?')[0].split('&')[0].split('#')[0].trim();
-    console.log('[Router] resolved page:', hash);
 
     // Fallback to home for unknown hashes
     if (!SECTIONS.includes(hash)) hash = 'home';

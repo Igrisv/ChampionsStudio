@@ -84,13 +84,12 @@ async function initAuth() {
         // We do this directly because SIGNED_IN may never fire on implicit flow —
         // Supabase fires INITIAL_SESSION instead when the token is already in the URL.
         if (isOAuthLanding && session) {
-            console.log('[Auth] OAuth landing confirmed with session — redirecting to dashboard.');
-            isOAuthLanding = false; // Consume flag
+            isOAuthLanding = false;
             isAuthInitialized = true;
             updateAuthUI();
             setupAuthForms();
             navigateTo('dashboard');
-            return; // Let onAuthStateChange handle future events normally
+            return;
         }
 
         // ── Step 4: Listen for future auth events (non-OAuth flows) ──
