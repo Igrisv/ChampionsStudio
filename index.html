@@ -6,15 +6,38 @@
     <title>Game of Champions — Tu Arena, Tu Leyenda</title>
     <meta name="description" content="Plataforma oficial de Game of Champions. Descarga el juego, sigue las actualizaciones y únete a la comunidad de campeones.">
 
+    <!-- ── Security Headers (via meta where server headers unavailable) ── -->
+    <!-- X-Frame-Options: prevents your page being embedded in iframes (clickjacking) -->
+    <meta http-equiv="X-Frame-Options" content="SAMEORIGIN">
+
+    <!-- Referrer Policy: don't leak the full URL when following external links -->
+    <meta name="referrer" content="strict-origin-when-cross-origin">
+
+    <!-- Permissions Policy: disable unused sensitive browser APIs -->
+    <meta http-equiv="Permissions-Policy"
+          content="camera=(), microphone=(), geolocation=(), payment=()">
+
+    <!-- Content Security Policy: restrict resource origins to known-safe sources -->
+    <meta http-equiv="Content-Security-Policy"
+          content="
+            default-src 'self';
+            script-src  'self' 'unsafe-inline' https://unpkg.com https://cdn.jsdelivr.net;
+            style-src   'self' 'unsafe-inline' https://fonts.googleapis.com;
+            font-src    'self' https://fonts.gstatic.com;
+            img-src     'self' data: https: blob:;
+            connect-src 'self' https://fqnysilvsedbhojwgbhe.supabase.co wss://fqnysilvsedbhojwgbhe.supabase.co https://accounts.google.com;
+            frame-ancestors 'none';
+          ">
+
     <!-- Fonts preload -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 
-    <!-- Lucide Icons -->
-    <script src="https://unpkg.com/lucide@latest"></script>
+    <!-- Lucide Icons (pinned version for stability) -->
+    <script src="https://unpkg.com/lucide@0.468.0/dist/umd/lucide.js" crossorigin="anonymous"></script>
 
-    <!-- Supabase -->
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+    <!-- Supabase (pinned version for stability) -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.49.4/dist/umd/supabase.min.js" crossorigin="anonymous"></script>
 
     <!-- Styles -->
     <link rel="stylesheet" href="css/styles.css">
