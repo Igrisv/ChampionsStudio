@@ -97,6 +97,8 @@ const DEVLOG_ENTRIES_STATIC = [
 
 // Runtime entries array (populated from Supabase or fallback)
 let devlogEntries = [...DEVLOG_ENTRIES_STATIC];
+let devlogLimit = 5;
+let currentDevlogFilter = 'all';
 
 /**
  * Try to load entries from Supabase `news` table.
@@ -142,6 +144,8 @@ function renderDevlog(filter = 'all') {
         ? devlogEntries
         : devlogEntries.filter(e => e.tags && e.tags.some(t => t.toLowerCase() === filter.toLowerCase()));
 
+    const paged = filtered.slice(0, devlogLimit);
+
     if (filtered.length === 0) {
         timeline.innerHTML = `
             <div style="text-align:center;padding:40px;color:var(--text-muted)">
@@ -153,8 +157,8 @@ function renderDevlog(filter = 'all') {
         return;
     }
 
-    timeline.innerHTML = filtered.map((entry, i) => `
-        <div class="devlog-entry" style="animation-delay:${i * 0.1}s">
+    let html = paged.map((entry, i) => `
+        <div class="devlog-entry" style="animation-delay:${(i % 5) * 0.1}s">
             <div class="devlog-card">
                 <div class="devlog-meta">
                     <span class="devlog-version">${entry.version}</span>
@@ -171,6 +175,24 @@ function renderDevlog(filter = 'all') {
             </div>
         </div>
     `).join('');
+
+    if (filtered.length > devlogLimit) {
+        html += `
+            <div style="text-align: center; margin-top: 32px;">
+                <button id="devlog-load-more" class="btn btn-ghost">Cargar más antiguas...</button>
+            </div>
+        `;
+    }
+
+    timeline.innerHTML = html;
+
+    const loadMoreBtn = document.getElementById('devlog-load-more');
+    if (loadMoreBtn) {
+        loadMoreBtn.addEventListener('click', () => {
+            devlogLimit += 5;
+            renderDevlog(currentDevlogFilter);
+        });
+    }
 
     lucide.createIcons();
 }
@@ -206,6 +228,8 @@ function initDevlog() {
             btn.classList.add('active');
 
             const filter = btn.getAttribute('data-filter');
+            currentDevlogFilter = filter;
+            devlogLimit = 5; // Reset limit when changing filter
             renderDevlog(filter);
         });
 

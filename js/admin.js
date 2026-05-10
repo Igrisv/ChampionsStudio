@@ -442,6 +442,50 @@ async function initProfile() {
         } catch (e) { /* profile table might not exist yet */ }
     }
 
+    // Setup Avatar Grid
+    const avatarGrid = document.getElementById('avatar-selection-grid');
+    if (avatarGrid && typeof AVATAR_OPTIONS !== 'undefined') {
+        const initialStr = email.charAt(0).toUpperCase();
+        avatarGrid.innerHTML = AVATAR_OPTIONS.map(opt => `
+            <div class="avatar-option ${opt.id === selectedAvatarId ? 'selected' : ''}" data-id="${opt.id}">
+                ${opt.id === 'default' ? `<span style="font-size:1.5rem;font-weight:700">${initialStr}</span>` : `<i data-lucide="${opt.icon}"></i>`}
+            </div>
+        `).join('');
+        avatarGrid.querySelectorAll('.avatar-option').forEach(el => {
+            el.addEventListener('click', () => {
+                avatarGrid.querySelectorAll('.avatar-option').forEach(o => o.classList.remove('selected'));
+                el.classList.add('selected');
+                selectedAvatarId = el.getAttribute('data-id');
+                if (typeof applyAestheticsToAvatar === 'function') {
+                    applyAestheticsToAvatar('profile-avatar-display', 'profile-frame-ring', selectedAvatarId, selectedFrameId, initialStr);
+                }
+            });
+        });
+    }
+
+    // Setup Frame Grid
+    const frameGrid = document.getElementById('frame-selection-grid');
+    if (frameGrid && typeof FRAME_OPTIONS !== 'undefined') {
+        const initialStr = email.charAt(0).toUpperCase();
+        frameGrid.innerHTML = FRAME_OPTIONS.map(opt => `
+            <div class="frame-option ${opt.id === selectedFrameId ? 'selected' : ''} ${opt.class}" data-id="${opt.id}">
+                ${opt.id === 'default' ? 'Base' : ''}
+            </div>
+        `).join('');
+        frameGrid.querySelectorAll('.frame-option').forEach(el => {
+            el.addEventListener('click', () => {
+                frameGrid.querySelectorAll('.frame-option').forEach(o => o.classList.remove('selected'));
+                el.classList.add('selected');
+                selectedFrameId = el.getAttribute('data-id');
+                if (typeof applyAestheticsToAvatar === 'function') {
+                    applyAestheticsToAvatar('profile-avatar-display', 'profile-frame-ring', selectedAvatarId, selectedFrameId, initialStr);
+                }
+            });
+        });
+    }
+    
+    if (window.lucide) lucide.createIcons();
+
     // Save profile
     document.getElementById('profile-save-btn')?.addEventListener('click', handleSaveProfile);
 }
@@ -467,6 +511,8 @@ async function handleSaveProfile() {
                 id: currentUser.id,
                 username: username,
                 bio: bio,
+                avatar_id: typeof selectedAvatarId !== 'undefined' ? selectedAvatarId : 'default',
+                frame_id: typeof selectedFrameId !== 'undefined' ? selectedFrameId : 'default',
                 updated_at: new Date().toISOString()
             });
             if (error) throw error;
@@ -475,6 +521,11 @@ async function handleSaveProfile() {
             // Live update dashboard UI
             const dashUser = document.getElementById('dash-username');
             if (dashUser) dashUser.textContent = username;
+            
+            if (typeof applyAestheticsToAvatar === 'function') {
+                const initialStr = (currentUser.email || '').charAt(0).toUpperCase();
+                applyAestheticsToAvatar('dash-avatar', 'dash-frame-ring', typeof selectedAvatarId !== 'undefined' ? selectedAvatarId : 'default', typeof selectedFrameId !== 'undefined' ? selectedFrameId : 'default', initialStr);
+            }
             
         } catch (err) {
             showAdminMessage(msgEl, 'Error al guardar: ' + err.message, 'error');

@@ -12,6 +12,29 @@ let supabaseClient = null;
 let currentUser = null;
 let isAuthInitialized = false;
 
+// ── Aesthetics State ──
+const AVATAR_OPTIONS = [
+    { id: 'default', icon: 'user' },
+    { id: 'sword', icon: 'swords' },
+    { id: 'shield', icon: 'shield' },
+    { id: 'crown', icon: 'crown' },
+    { id: 'flame', icon: 'flame' },
+    { id: 'zap', icon: 'zap' },
+    { id: 'skull', icon: 'skull' },
+    { id: 'ghost', icon: 'ghost' },
+    { id: 'Gamepad2', icon: 'gamepad-2' }
+];
+
+const FRAME_OPTIONS = [
+    { id: 'default', class: 'frame-default' },
+    { id: 'neon', class: 'frame-neon' },
+    { id: 'gold', class: 'frame-gold' }
+];
+
+let selectedAvatarId = 'default';
+let selectedFrameId = 'default';
+let isOAuthLanding = false;
+
 /**
  * Initialize Supabase client (called once on page load).
  * Wrapped in try/catch so navigation still works even if Supabase CDN fails.
@@ -33,6 +56,10 @@ function getSupabase() {
  * Safe to call even if Supabase isn't available.
  */
 async function initAuth() {
+    // Capture URL before Supabase aggressively sanitizes it
+    isOAuthLanding = window.location.search.includes('code=') || window.location.hash.includes('access_token=');
+    console.log('[Auth] -> initAuth started. isOAuthLanding?', isOAuthLanding);
+
     const sb = getSupabase();
     if (!sb) {
         console.warn('Supabase not available — auth features disabled.');
@@ -49,14 +76,17 @@ async function initAuth() {
 
         // Listen for auth state changes
         sb.auth.onAuthStateChange((event, session) => {
+            console.log(`[Auth] -> onAuthStateChange fired! Event: ${event}, isOAuthLanding: ${isOAuthLanding}`);
+            
             currentUser = session?.user || null;
             updateAuthUI();
 
             const currentHash = (window.location.hash || '#home').replace('#', '').split('?')[0];
 
             if (event === 'SIGNED_IN') {
-                const isOAuthReturn = window.location.search.includes('code=') || window.location.hash.includes('access_token=');
-                if (['login', 'register'].includes(currentHash) || isOAuthReturn) {
+                console.log(`[Auth] -> SIGNED_IN event. Routing logic: currentHash=${currentHash}, isOAuthLanding=${isOAuthLanding}`);
+                if (['login', 'register'].includes(currentHash) || isOAuthLanding) {
+                    console.log(`[Auth] -> Redirecting to Dashboard!`);
                     navigateTo('dashboard');
                 }
             } else if (event === 'SIGNED_OUT') {
@@ -133,22 +163,35 @@ function updateAuthUI() {
         setTextById('dash-info-email', email);
         setTextById('dash-info-since', createdAt);
 
-        // Profile avatar
-        setTextById('profile-avatar-display', initial);
-        const profileEmail = document.getElementById('profile-email');
-        if (profileEmail) profileEmail.value = email;
-        const profileUsername = document.getElementById('profile-username');
-        if (profileUsername && !profileUsername.value) profileUsername.value = email.split('@')[0];
-
-        // Populate token for games
+        // Read profile aesthetics
         const sb = getSupabase();
         if (sb) {
+            sb.from('profiles').select('*').eq('id', currentUser.id).single().then(({ data }) => {
+                if (data) {
+                    if (data.username) {
+                        setTextById('dash-username', data.username);
+                        const pName = document.getElementById('profile-username');
+                        if (pName && !pName.value) pName.value = data.username;
+                    }
+
+                    selectedAvatarId = data.avatar_id || 'default';
+                    selectedFrameId = data.frame_id || 'default';
+
+                    applyAestheticsToAvatar('dash-avatar', 'dash-frame-ring', selectedAvatarId, selectedFrameId, initial);
+                    applyAestheticsToAvatar('profile-avatar-display', 'profile-frame-ring', selectedAvatarId, selectedFrameId, initial);
+                }
+            });
+
+            // Populate token for games
             sb.auth.getSession().then(({ data }) => {
                 if (data && data.session) {
                     const tokenInput = document.getElementById('game-access-token');
                     if (tokenInput) tokenInput.value = data.session.access_token;
                 }
             });
+        } else {
+            applyAestheticsToAvatar('dash-avatar', 'dash-frame-ring', 'default', 'default', initial);
+            applyAestheticsToAvatar('profile-avatar-display', 'profile-frame-ring', 'default', 'default', initial);
         }
 
         // Re-init modules that depend on auth
@@ -183,6 +226,35 @@ function updateAuthUI() {
 function setTextById(id, text) {
     const el = document.getElementById(id);
     if (el) el.textContent = text;
+}
+
+/** Helper to apply avatar and frame visuals */
+function applyAestheticsToAvatar(avatarElId, frameElId, avatarId, frameId, textFallback) {
+    const avatarEl = document.getElementById(avatarElId);
+    const frameEl = document.getElementById(frameElId);
+    
+    if (avatarEl) {
+        if (avatarId === 'default' || !avatarId) {
+            avatarEl.innerHTML = textFallback;
+        } else {
+            const aOpt = AVATAR_OPTIONS.find(a => a.id === avatarId);
+            if (aOpt) {
+                avatarEl.innerHTML = `<i data-lucide="${aOpt.icon}"></i>`;
+                if (window.lucide) lucide.createIcons();
+            } else {
+                avatarEl.innerHTML = textFallback;
+            }
+        }
+    }
+
+    if (frameEl) {
+        // Reset classes
+        frameEl.className = 'profile-frame';
+        const fOpt = FRAME_OPTIONS.find(f => f.id === frameId);
+        if (fOpt && fOpt.id !== 'default') {
+            frameEl.classList.add(fOpt.class);
+        }
+    }
 }
 
 /**

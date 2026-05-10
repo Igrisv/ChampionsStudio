@@ -20,9 +20,13 @@ function navigateTo(sectionId) {
  */
 function handleRoute() {
     let hash = (window.location.hash || '#home').replace('#', '');
+    console.log('[Router] -> handleRoute processing:', hash);
 
     // Let Supabase silently handle callback tokens
-    if (hash.includes('access_token') || hash.includes('type=recovery')) return;
+    if (hash.includes('access_token') || hash.includes('type=recovery')) {
+        console.log('[Router] -> Yielding routing to Supabase for token injection.');
+        return;
+    }
 
     // Strip query-string noise
     hash = hash.split('?')[0].split('&')[0];
