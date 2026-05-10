@@ -159,7 +159,7 @@ function renderDevlog(filter = 'all') {
                 <div class="devlog-meta">
                     <span class="devlog-version">${entry.version}</span>
                     <span class="devlog-date">${formatDate(entry.date)}</span>
-                    ${(entry.tags || []).map(t => `<span class="game-tag" style="background:rgba(255,255,255,0.05); color:var(--text-secondary); padding:2px 8px; border-radius:4px; font-size:0.75rem; border:1px solid rgba(255,255,255,0.1)">${t}</span>`).join(' ')}
+                    ${(entry.tags || []).map(t => `<span class="devlog-tag" style="background: rgba(147, 51, 234, 0.15); color: #c084fc; border: 1px solid rgba(147, 51, 234, 0.3); text-transform: uppercase; font-size: 0.7rem; padding: 4px 10px; border-radius: 20px; font-weight: 700;">${t}</span>`).join(' ')}
                 </div>
                 <h3>${entry.title}</h3>
                 <p>${entry.description}</p>

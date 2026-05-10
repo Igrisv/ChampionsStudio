@@ -164,7 +164,7 @@ function renderAdminNewsList() {
     container.innerHTML = devlogEntries.map(entry => `
         <div class="admin-list-item">
             <div class="admin-list-info">
-                <span class="game-tag" style="background:rgba(255,255,255,0.05); color:var(--text-secondary); padding:2px 8px; border-radius:4px; font-size:0.7rem; border:1px solid rgba(255,255,255,0.1)">${(entry.tags || []).join(', ')}</span>
+                ${(entry.tags || []).map(t => `<span class="devlog-tag" style="background: rgba(147, 51, 234, 0.15); color: #c084fc; border: 1px solid rgba(147, 51, 234, 0.3); text-transform: uppercase; font-size: 0.7rem; padding: 3px 8px; border-radius: 20px; font-weight: 700;">${t}</span>`).join(' ')}
                 <strong>${entry.title}</strong>
                 <span class="admin-list-date">${entry.date}</span>
             </div>
@@ -224,7 +224,9 @@ async function loadGamesData() {
                     version: dbGame.version || localFallback.version || '',
                     status: dbGame.status || localFallback.status || 'coming_soon',
                     platform: dbGame.platform || localFallback.platform || '',
-                    size: dbGame.size || localFallback.size || ''
+                    size: dbGame.size || localFallback.size || '',
+                    image_url: dbGame.image_url || localFallback.image_url || null,
+                    download_info: dbGame.download_info || localFallback.download_info || null
                 };
             });
         }
